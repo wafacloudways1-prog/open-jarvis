@@ -23,7 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.lifecycleScope
+import androidx.compose.runtime.rememberCoroutineScope
 import com.openjarvis.ui.theme.VoidColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -52,6 +52,7 @@ class OnboardingActivity : ComponentActivity() {
 fun OnboardingScreen(onComplete: () -> Unit) {
     var currentScreen by remember { mutableIntStateOf(0) }
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     
     Scaffold(
         containerColor = VoidColor.Void950
@@ -360,7 +361,7 @@ private fun TryItScreen(onBack: () -> Unit, onSuccess: () -> Unit) {
         Button(
             onClick = {
                 isRunning = true
-                lifecycleScope.launch {
+                coroutineScope.launch {
                     delay(2000)
                     isRunning = false
                     onSuccess()
