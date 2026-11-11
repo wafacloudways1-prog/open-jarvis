@@ -6,6 +6,7 @@ object VoidColor {
     val Void950 = Color(0xFF080711)
     val Void900 = Color(0xFF100D1C)
     val Void800 = Color(0xFF191529)
+    val Void700 = Color(0xFF272139)
     val Void600 = Color(0xFF39334D)
     val BorderSubtle = Color(0xFF302A43)
     val BorderGlow = Color(0xFF8060C8)
