@@ -1,4 +1,5 @@
 name: Build Open JARVIS APK
+run-name: Build Open JARVIS APK (apk-build)
 
 on:
   push:
