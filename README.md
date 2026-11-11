@@ -20,7 +20,7 @@ Open Jarvis is an autonomous Android AI agent that accepts natural language
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/tokenarc/open-jarvis)](https://github.com/tokenarc/open-jarvis/stargazers)
 
----
+--
 
 ## Feature Status
 
