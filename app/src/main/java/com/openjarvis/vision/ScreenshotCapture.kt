@@ -6,6 +6,8 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.PixelFormat
 import android.media.ImageReader
+import android.hardware.display.DisplayManager
+import android.hardware.display.VirtualDisplay
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.os.Handler
@@ -24,6 +26,10 @@ class ScreenshotCapture(private val context: Context) {
     private var handlerThread: HandlerThread? = null
     private var handler: Handler? = null
     private var isCapturing = false
+    private var captureWidth = 0
+    private var captureHeight = 0
+    private var captureDensityDpi = 0
+    private var virtualDisplay: VirtualDisplay? = null
 
     fun startCapture(): Boolean {
         val projectionManager = context.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
@@ -48,6 +54,9 @@ class ScreenshotCapture(private val context: Context) {
         val width = metrics.widthPixels
         val height = metrics.heightPixels
         val density = metrics.densityDpi
+        captureWidth = width
+        captureHeight = height
+        captureDensityDpi = density
 
         handlerThread = HandlerThread("ScreenshotThread").apply { start() }
         handler = Handler(handlerThread!!.looper)
@@ -60,6 +69,16 @@ class ScreenshotCapture(private val context: Context) {
         )
 
         mediaProjection = projection
+        virtualDisplay = projection.createVirtualDisplay(
+            "Screenshot",
+            captureWidth,
+            captureHeight,
+            captureDensityDpi,
+            DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+            imageReader!!.surface,
+            null,
+            handler
+        )
         isCapturing = true
 
         return null
@@ -68,20 +87,7 @@ class ScreenshotCapture(private val context: Context) {
     fun capture(): Bitmap? {
         if (!isCapturing || imageReader == null) return null
 
-        val surface = imageReader?.surface ?: return null
-        
         try {
-            mediaProjection?.createVirtualDisplay(
-                "Screenshot",
-                surface.width,
-                surface.height,
-                surface.allocation,
-                surface.allocation,
-                surface,
-                null,
-                handler
-            )
-
             val image = imageReader?.acquireLatestImage()
             return image?.let { img ->
                 val planes = img.planes
@@ -112,6 +118,8 @@ class ScreenshotCapture(private val context: Context) {
 
     fun release() {
         isCapturing = false
+        virtualDisplay?.release()
+        virtualDisplay = null
         mediaProjection?.stop()
         mediaProjection = null
         imageReader?.close()
