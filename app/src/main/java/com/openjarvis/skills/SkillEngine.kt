@@ -252,6 +252,6 @@ data class Skill(
     val actionTemplate: List<Action>,
     val successVerification: String,
     val tags: List<String>,
-    val usageCount: Int,
-    val successRate: Float
+    val usageCount: Int = 0,
+    val successRate: Float = 1f
 )
