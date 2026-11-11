@@ -39,14 +39,13 @@ class SkillEngine(private val context: Context) {
     }
     
     private fun copyBuiltinSkillsIfNeeded() {
-        val builtinDir = File(context.assets, "skills")
-        if (!builtinDir.exists()) return
+        val builtinFiles = context.assets.list("skills") ?: return
         
-        builtinDir.listFiles()?.forEach { assetFile ->
-            val destFile = File(skillsDir, assetFile.name)
+        builtinFiles.filter { it.endsWith(".json") }.forEach { fileName ->
+            val destFile = File(skillsDir, fileName)
             if (!destFile.exists()) {
                 try {
-                    context.assets.open("skills/${assetFile.name}").use { input ->
+                    context.assets.open("skills/$fileName").use { input ->
                         destFile.outputStream().use { output ->
                             input.copyTo(output)
                         }
