@@ -49,7 +49,7 @@ fun DashboardScreen(
 ) {
     var recentTasks by remember { mutableStateOf<List<TaskNode>>(emptyList()) }
     var mostUsedApps by remember { mutableStateOf<List<AppNode>>(emptyList()) }
-    var isSystemActive by remember { mutableStateOf(true) }
+    var isSystemActive by remember { mutableStateOf(false) }
     
     var heroAlpha by remember { mutableFloatStateOf(0f) }
     var statsAlpha by remember { mutableFloatStateOf(0f) }
@@ -89,7 +89,7 @@ fun DashboardScreen(
         ) {
             Spacer(modifier = Modifier.height(56.dp))
             
-            HeroSection(isSystemActive = isSystemActive)
+            HeroSection(isSystemActive = isSystemActive, onActivate = {\n                onStartOverlay()\n                isSystemActive = true\n            })
             
             Spacer(modifier = Modifier.height(16.dp))
             
@@ -145,7 +145,7 @@ private fun OrbBackground() {
 }
 
 @Composable
-private fun HeroSection(isSystemActive: Boolean) {
+private fun HeroSection(isSystemActive: Boolean, onActivate: () -> Unit) {
     Column {
         Surface(
             shape = RoundedCornerShape(999.dp),
@@ -203,12 +203,12 @@ private fun HeroSection(isSystemActive: Boolean) {
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        StatusBadge(isActive = isSystemActive)
+        StatusBadge(isActive = isSystemActive, onClick = onActivate)
     }
 }
 
 @Composable
-private fun StatusBadge(isActive: Boolean) {
+private fun StatusBadge(isActive: Boolean, onClick: () -> Unit) {
     val infiniteTransition = rememberInfiniteTransition(label = "badge")
     
     val dotScale by infiniteTransition.animateFloat(
