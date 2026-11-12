@@ -7,6 +7,9 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.IBinder
+import android.provider.Settings
+import android.util.Log
+import android.widget.Toast
 import android.graphics.PixelFormat
 import android.view.Gravity
 import android.view.WindowManager
@@ -45,19 +48,46 @@ class OverlayService : LifecycleService() {
 
     override fun onCreate() {
         super.onCreate()
+        try {
+            // Promote the service before doing potentially slow initialization.
+            startForeground(NOTIFICATION_ID, createNotification())
 
-        agentCore = AgentCore(this)
-        voiceManager = VoiceManager(this)
-        graphifyRepo = GraphifyRepository(this)
-        windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+            if (!Settings.canDrawOverlays(this)) {
+                throw SecurityException("Display over other apps permission is disabled.")
+            }
 
-        startForeground(NOTIFICATION_ID, createNotification())
-        showOverlay()
+            windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+            agentCore = AgentCore(this)
+            voiceManager = VoiceManager(this)
+            graphifyRepo = GraphifyRepository(this)
 
-        lifecycleScope.launch(Dispatchers.IO) {
-            runCatching { graphifyRepo.getRecentTasks(10) }
-                .onSuccess { tasks -> recentTasks.value = tasks }
+            showOverlay()
+            checkNotNull(overlayView) { "The floating JARVIS window was not attached." }
+            sendOverlayStatus(ACTION_OVERLAY_STARTED)
+
+            lifecycleScope.launch(Dispatchers.IO) {
+                runCatching { graphifyRepo.getRecentTasks(10) }
+                    .onSuccess { tasks -> recentTasks.value = tasks }
+            }
+        } catch (error: Exception) {
+            Log.e(TAG, "Overlay service failed to start", error)
+            sendOverlayStatus(
+                ACTION_OVERLAY_FAILED,
+                error.message ?: error.javaClass.simpleName
+            )
+            Toast.makeText(
+                this,
+                "JARVIS could not activate: ${error.message ?: error.javaClass.simpleName}",
+                Toast.LENGTH_LONG
+            ).show()
+            stopSelf()
         }
+    }
+
+    private fun sendOverlayStatus(action: String, message: String? = null) {
+        val statusIntent = Intent(action).setPackage(packageName)
+        if (message != null) statusIntent.putExtra(EXTRA_ERROR, message)
+        sendBroadcast(statusIntent)
     }
 
     private fun showOverlay() {
@@ -105,7 +135,7 @@ class OverlayService : LifecycleService() {
             overlayView = view
         } catch (error: Exception) {
             view.disposeComposition()
-            stopSelf()
+            throw error
         }
     }
 
@@ -122,7 +152,7 @@ class OverlayService : LifecycleService() {
             view.disposeComposition()
         }
         overlayView = null
-        voiceManager.release()
+        if (::voiceManager.isInitialized) voiceManager.release()
         super.onDestroy()
     }
 
@@ -162,6 +192,10 @@ class OverlayService : LifecycleService() {
     }
 
     companion object {
+        const val ACTION_OVERLAY_STARTED = "com.openjarvis.action.OVERLAY_STARTED"
+        const val ACTION_OVERLAY_FAILED = "com.openjarvis.action.OVERLAY_FAILED"
+        const val EXTRA_ERROR = "com.openjarvis.extra.OVERLAY_ERROR"
+        private const val TAG = "OverlayService"
         private const val CHANNEL_ID = "jarvis_overlay_channel"
         private const val NOTIFICATION_ID = 1
 
