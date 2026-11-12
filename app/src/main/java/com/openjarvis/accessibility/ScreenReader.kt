@@ -74,7 +74,7 @@ class ScreenReader(private val context: Context? = null, private val service: Ja
     }
 
     fun findNodeByHint(hint: String): AccessibilityNodeInfo? {
-        val rootNode = service.rootInActiveWindow ?: return null
+        val rootNode = activeService()?.rootInActiveWindow ?: return null
         val result = findHintRecursive(rootNode, hint)
         rootNode.recycle()
         return result
