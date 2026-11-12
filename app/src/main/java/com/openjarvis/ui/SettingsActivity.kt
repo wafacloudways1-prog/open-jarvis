@@ -13,11 +13,13 @@ import androidx.security.crypto.MasterKey
 import com.openjarvis.R
 import com.openjarvis.ui.settings.SettingsScreen
 import com.openjarvis.llm.UniversalAdapter
+import com.openjarvis.voice.VoiceManager
 import com.openjarvis.ui.theme.OpenJarvisTheme
 
 class SettingsActivity : ComponentActivity() {
     
     private lateinit var universalAdapter: UniversalAdapter
+    private lateinit var voiceManager: VoiceManager
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,6 +28,7 @@ class SettingsActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         
         universalAdapter = UniversalAdapter(this)
+        voiceManager = VoiceManager(this)
         
         setContent {
             OpenJarvisTheme {
@@ -37,6 +40,10 @@ class SettingsActivity : ComponentActivity() {
                     initialModel = universalAdapter.getSavedModel().ifBlank {
                         UniversalAdapter.getDefaultModel(universalAdapter.getProviderName())
                     },
+                    initialVoiceEnabled = voiceManager.isVoiceEnabled(),
+                    initialSpeakResults = voiceManager.isSpeakResultsEnabled(),
+                    onVoiceEnabledChange = voiceManager::setVoiceEnabled,
+                    onSpeakResultsChange = voiceManager::setSpeakResultsEnabled,
                     onSaveProvider = { name, baseUrl, apiKey, model ->
                         universalAdapter.saveSettings(name, baseUrl, apiKey, model)
                     },
@@ -48,5 +55,9 @@ class SettingsActivity : ComponentActivity() {
             }
         }
     }
-    
+
+    override fun onDestroy() {
+        if (::voiceManager.isInitialized) voiceManager.release()
+        super.onDestroy()
+    }
 }
