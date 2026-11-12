@@ -17,7 +17,9 @@ class JarvisNotificationListener : NotificationListenerService() {
     private val notifications = mutableListOf<JarvisNotification>()
     
     companion object {
-        private val messagingApps = listOf("com.whatsapp", "com.google.android.apps.messaging", "com.samsung.android.messaging", "com.instagram.android", "com.facebook.orca", "org.telegram.messenger", "com.slack", "com.discord")\n\n        private val PRIVACY_PROTECTED_APPS = setOf(
+        private val messagingApps = listOf("com.whatsapp", "com.google.android.apps.messaging", "com.samsung.android.messaging", "com.instagram.android", "com.facebook.orca", "org.telegram.messenger", "com.slack", "com.discord")
+
+        private val PRIVACY_PROTECTED_APPS = setOf(
             "com.google.android.apps.nbu.paisa.user",
             "com.phonepe.app",
             "net.one97.paytm",
