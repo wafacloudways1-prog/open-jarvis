@@ -21,7 +21,7 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.ViewTreeLifecycleOwner
+import androidx.lifecycle.setViewTreeLifecycleOwner
 import com.openjarvis.R
 import com.openjarvis.agent.AgentCore
 import com.openjarvis.graphify.GraphifyRepository
@@ -65,7 +65,7 @@ class OverlayService : LifecycleService() {
 
         val view = ComposeView(this).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
-            ViewTreeLifecycleOwner.set(this, this@OverlayService)
+            setViewTreeLifecycleOwner(this@OverlayService)
             setContent {
                 val agentState = agentCore.state.collectAsState()
                 val tasks = recentTasks.collectAsState()
