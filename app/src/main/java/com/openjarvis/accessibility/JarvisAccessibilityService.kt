@@ -16,7 +16,7 @@ class JarvisAccessibilityService : AccessibilityService() {
         instance = this
         
         val info = AccessibilityServiceInfo().apply {
-            eventTypes = AccessibilityEvent.TYPE_ALL_MASK
+            eventTypes = AccessibilityEvent.TYPES_ALL_MASK
             feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
             flags = AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS or 
                    AccessibilityServiceInfo.FLAG_REQUEST_ENHANCED_WEB_ACCESSIBILITY
@@ -36,12 +36,14 @@ class JarvisAccessibilityService : AccessibilityService() {
         super.onDestroy()
     }
 
-    fun openAppByPackage(packageName: String) {
+    fun openAppByPackage(packageName: String): Boolean {
         val intent = packageManager.getLaunchIntentForPackage(packageName)
         if (intent != null) {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             startActivity(intent)
+            return true
         }
+        return false
     }
 
     fun openAppByLabel(label: String): Boolean {
