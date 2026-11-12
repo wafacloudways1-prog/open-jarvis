@@ -89,7 +89,10 @@ fun DashboardScreen(
         ) {
             Spacer(modifier = Modifier.height(56.dp))
             
-            HeroSection(isSystemActive = isSystemActive, onActivate = {\n                onStartOverlay()\n                isSystemActive = true\n            })
+            HeroSection(isSystemActive = isSystemActive, onActivate = {
+                onStartOverlay()
+                isSystemActive = true
+            })
             
             Spacer(modifier = Modifier.height(16.dp))
             
@@ -238,6 +241,7 @@ private fun StatusBadge(isActive: Boolean, onClick: () -> Unit) {
     }
     
     Surface(
+        modifier = Modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(999.dp),
         color = bgColor,
         border = androidx.compose.foundation.BorderStroke(1.dp, borderColor)
