@@ -12,12 +12,12 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.openjarvis.R
 import com.openjarvis.ui.settings.SettingsScreen
+import com.openjarvis.llm.UniversalAdapter
 import com.openjarvis.ui.theme.OpenJarvisTheme
 
 class SettingsActivity : ComponentActivity() {
     
-    private lateinit var masterKey: MasterKey
-    private lateinit var prefs: android.content.SharedPreferences
+    private lateinit var universalAdapter: UniversalAdapter
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,24 +25,23 @@ class SettingsActivity : ComponentActivity() {
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)
         
-        masterKey = MasterKey.Builder(this)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
-        
-        prefs = EncryptedSharedPreferences.create(
-            this,
-            "jarvis_encrypted_prefs",
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
+        universalAdapter = UniversalAdapter(this)
         
         setContent {
             OpenJarvisTheme {
                 SettingsScreen(
                     onNavigateBack = { finish() },
+                    initialProvider = universalAdapter.getProviderName(),
+                    initialBaseUrl = universalAdapter.getSavedBaseUrl(),
+                    initialApiKey = universalAdapter.getSavedApiKey(),
+                    initialModel = universalAdapter.getSavedModel().ifBlank {
+                        UniversalAdapter.getDefaultModel(universalAdapter.getProviderName())
+                    },
                     onSaveProvider = { name, baseUrl, apiKey, model ->
-                        saveProviderSettings(name, baseUrl, apiKey, model)
+                        universalAdapter.saveSettings(name, baseUrl, apiKey, model)
+                    },
+                    onTestProvider = { name, baseUrl, apiKey, model ->
+                        universalAdapter.testConnection(name, baseUrl, apiKey, model)
                     },
                     modifier = Modifier.fillMaxSize()
                 )
@@ -50,13 +49,4 @@ class SettingsActivity : ComponentActivity() {
         }
     }
     
-    private fun saveProviderSettings(name: String, baseUrl: String, apiKey: String, model: String) {
-        prefs.edit().apply {
-            putString("provider_name", name)
-            putString("provider_base_url", baseUrl)
-            putString("provider_api_key", apiKey)
-            putString("provider_model", model)
-            apply()
-        }
-    }
 }
