@@ -45,11 +45,11 @@ fun DashboardScreen(
     onStartOverlay: () -> Unit,
     onOpenSettings: () -> Unit,
     graphifyRepo: GraphifyRepository,
+    isSystemActive: Boolean,
     modifier: Modifier = Modifier
 ) {
     var recentTasks by remember { mutableStateOf<List<TaskNode>>(emptyList()) }
     var mostUsedApps by remember { mutableStateOf<List<AppNode>>(emptyList()) }
-    var isSystemActive by remember { mutableStateOf(false) }
     
     var heroAlpha by remember { mutableFloatStateOf(0f) }
     var statsAlpha by remember { mutableFloatStateOf(0f) }
@@ -89,10 +89,7 @@ fun DashboardScreen(
         ) {
             Spacer(modifier = Modifier.height(56.dp))
             
-            HeroSection(isSystemActive = isSystemActive, onActivate = {
-                onStartOverlay()
-                isSystemActive = true
-            })
+            HeroSection(isSystemActive = isSystemActive, onActivate = onStartOverlay)
             
             Spacer(modifier = Modifier.height(16.dp))
             
