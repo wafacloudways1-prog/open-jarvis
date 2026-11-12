@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,12 +40,17 @@ import com.openjarvis.ui.theme.VoidColor
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onSaveProvider: (String, String, String, String) -> Unit,
+    onTestProvider: suspend (String, String, String, String) -> Result<Long>,
+    initialProvider: String = "Groq",
+    initialBaseUrl: String = "",
+    initialApiKey: String = "",
+    initialModel: String = "openai/gpt-oss-120b",
     modifier: Modifier = Modifier
 ) {
-    var selectedProvider by remember { mutableStateOf("Groq") }
-    var baseUrl by remember { mutableStateOf("") }
-    var apiKey by remember { mutableStateOf("") }
-    var model by remember { mutableStateOf("llama-3.1-70b-versatile") }
+    var selectedProvider by remember { mutableStateOf(initialProvider) }
+    var baseUrl by remember { mutableStateOf(initialBaseUrl) }
+    var apiKey by remember { mutableStateOf(initialApiKey) }
+    var model by remember { mutableStateOf(initialModel) }
     var showBaseUrlField by remember { mutableStateOf(false) }
     var showProvidersDropdown by remember { mutableStateOf(false) }
     var showPassword by remember { mutableStateOf(false) }
@@ -89,6 +95,7 @@ fun SettingsScreen(
                     onToggle = { showProvidersDropdown = !showProvidersDropdown },
                     onSelect = { provider ->
                         selectedProvider = provider
+                        model = UniversalAdapter.getDefaultModel(provider)
                         showProvidersDropdown = false
                     }
                 )
@@ -132,9 +139,11 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(24.dp))
                 
                 TestConnectionButton(
+                    provider = selectedProvider,
                     apiKey = apiKey,
                     baseUrl = baseUrl,
                     model = model,
+                    onTest = onTestProvider,
                     onSave = { name, url, key, mdl ->
                         onSaveProvider(name, url, key, mdl)
                         lastSaved = System.currentTimeMillis()
@@ -577,12 +586,15 @@ fun FloatingLabelTextField(
 
 @Composable
 private fun TestConnectionButton(
+    provider: String,
     apiKey: String,
     baseUrl: String,
     model: String,
+    onTest: suspend (String, String, String, String) -> Result<Long>,
     onSave: (String, String, String, String) -> Unit
 ) {
     var testState by remember { mutableStateOf<TestState>(TestState.Idle) }
+    val scope = rememberCoroutineScope()
     
     val borderColor by animateColorAsState(
         targetValue = when (testState) {
@@ -604,8 +616,18 @@ private fun TestConnectionButton(
     
     OutlinedButton(
         onClick = {
-            onSave("Groq", baseUrl, apiKey, model)
-            testState = TestState.Success(150)
+            testState = TestState.Loading
+            scope.launch {
+                onTest(provider, baseUrl, apiKey, model).fold(
+                    onSuccess = { latency ->
+                        onSave(provider, baseUrl, apiKey, model)
+                        testState = TestState.Success(latency)
+                    },
+                    onFailure = { error ->
+                        testState = TestState.Error(error.message ?: "Connection failed")
+                    }
+                )
+            }
         },
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -627,7 +649,7 @@ private fun TestConnectionButton(
                 Text("Connected — ${state.ms}ms")
             }
             is TestState.Error -> {
-                Text("Failed — check key")
+                Text("Failed — \${state.message}")
             }
         }
     }
