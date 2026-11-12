@@ -1,7 +1,10 @@
 package com.openjarvis.ui
 
+import android.content.BroadcastReceiver
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Toast
@@ -17,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
+import androidx.core.content.ContextCompat
 import com.openjarvis.accessibility.JarvisAccessibilityService
 import com.openjarvis.agent.AgentCore
 import com.openjarvis.agent.AgentState
@@ -27,6 +31,45 @@ import com.openjarvis.ui.settings.SettingsScreen
 import com.openjarvis.ui.theme.OpenJarvisTheme
 
 class MainActivity : ComponentActivity() {
+
+    private var overlayActive by mutableStateOf(false)
+    private var overlayReceiverRegistered = false
+
+    private val overlayStatusReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                OverlayService.ACTION_OVERLAY_STARTED -> overlayActive = true
+                OverlayService.ACTION_OVERLAY_FAILED -> {
+                    overlayActive = false
+                    val message = intent.getStringExtra(OverlayService.EXTRA_ERROR)
+                        ?: "Overlay could not start. Check the app logs."
+                    Toast.makeText(this@MainActivity, message, Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        if (!overlayReceiverRegistered) {
+            val filter = IntentFilter().apply {
+                addAction(OverlayService.ACTION_OVERLAY_STARTED)
+                addAction(OverlayService.ACTION_OVERLAY_FAILED)
+            }
+            ContextCompat.registerReceiver(
+                this, overlayStatusReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+            overlayReceiverRegistered = true
+        }
+    }
+
+    override fun onStop() {
+        if (overlayReceiverRegistered) {
+            unregisterReceiver(overlayStatusReceiver)
+            overlayReceiverRegistered = false
+        }
+        super.onStop()
+    }
     
     private lateinit var graphifyRepo: GraphifyRepository
     private lateinit var agentCore: AgentCore
@@ -64,6 +107,7 @@ class MainActivity : ComponentActivity() {
                 } else {
                     DashboardScreen(
                         onStartOverlay = { startOverlayService() },
+                        isSystemActive = overlayActive,
                         onOpenSettings = { openSettings() },
                         graphifyRepo = graphifyRepo,
                         modifier = Modifier.fillMaxSize()
@@ -93,8 +137,18 @@ class MainActivity : ComponentActivity() {
     }
     
     private fun startOverlayService() {
-        startService(Intent(this, OverlayService::class.java))
-        Toast.makeText(this, "Jarvis is active", Toast.LENGTH_SHORT).show()
+        if (!Settings.canDrawOverlays(this)) {
+            Toast.makeText(this, "Please enable display over other apps first.", Toast.LENGTH_LONG).show()
+            return
+        }
+        try {
+            overlayActive = false
+            OverlayService.start(this)
+            Toast.makeText(this, "Starting JARVIS…", Toast.LENGTH_SHORT).show()
+        } catch (error: Exception) {
+            overlayActive = false
+            Toast.makeText(this, "Could not start JARVIS: ${error.message ?: "unknown error"}", Toast.LENGTH_LONG).show()
+        }
     }
     
     private fun openSettings() {
