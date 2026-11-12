@@ -45,6 +45,10 @@ fun SettingsScreen(
     initialBaseUrl: String = "",
     initialApiKey: String = "",
     initialModel: String = "openai/gpt-oss-120b",
+    initialVoiceEnabled: Boolean = false,
+    initialSpeakResults: Boolean = true,
+    onVoiceEnabledChange: (Boolean) -> Unit = {},
+    onSpeakResultsChange: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var selectedProvider by remember { mutableStateOf(initialProvider) }
@@ -56,8 +60,8 @@ fun SettingsScreen(
     var showPassword by remember { mutableStateOf(false) }
     var lastSaved by remember { mutableStateOf(0L) }
     var savedVisible by remember { mutableStateOf(false) }
-    var voiceEnabled by remember { mutableStateOf(false) }
-    var speakResults by remember { mutableStateOf(true) }
+    var voiceEnabled by remember { mutableStateOf(initialVoiceEnabled) }
+    var speakResults by remember { mutableStateOf(initialSpeakResults) }
     var speechRate by remember { mutableStateOf(1.05f) }
     var sttMode by remember { mutableStateOf("Push to Talk") }
     
@@ -161,7 +165,10 @@ fun SettingsScreen(
                     title = "Voice Assistant",
                     subtitle = "Push to Talk · VAD supported",
                     enabled = voiceEnabled,
-                    onToggle = { voiceEnabled = !voiceEnabled }
+                    onToggle = {
+                        voiceEnabled = !voiceEnabled
+                        onVoiceEnabledChange(voiceEnabled)
+                    }
                 )
                 
                 if (voiceEnabled) {
@@ -171,7 +178,10 @@ fun SettingsScreen(
                         title = "Speak Results",
                         subtitle = "Jarvis reads results aloud",
                         enabled = speakResults,
-                        onToggle = { speakResults = !speakResults }
+                        onToggle = {
+                            speakResults = !speakResults
+                            onSpeakResultsChange(speakResults)
+                        }
                     )
                     
                     Spacer(modifier = Modifier.height(8.dp))
