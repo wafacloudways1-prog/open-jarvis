@@ -25,6 +25,10 @@ import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.savedstate.SavedStateRegistry
+import androidx.savedstate.SavedStateRegistryController
+import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.openjarvis.R
 import com.openjarvis.agent.AgentCore
 import com.openjarvis.graphify.GraphifyRepository
@@ -36,7 +40,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
-class OverlayService : LifecycleService() {
+class OverlayService : LifecycleService(), SavedStateRegistryOwner {
+
+    private val savedStateRegistryController = SavedStateRegistryController.create(this)
+
+    override val savedStateRegistry: SavedStateRegistry
+        get() = savedStateRegistryController.savedStateRegistry
 
     private var windowManager: WindowManager? = null
     private var overlayView: ComposeView? = null
@@ -47,7 +56,11 @@ class OverlayService : LifecycleService() {
     private val recentTasks = MutableStateFlow<List<TaskNode>>(emptyList())
 
     override fun onCreate() {
+        // Attach before LifecycleService dispatches ON_CREATE, then restore an empty
+        // registry because a service overlay has no Activity instance state to restore.
+        savedStateRegistryController.performAttach()
         super.onCreate()
+        savedStateRegistryController.performRestore(null)
         try {
             // Promote the service before doing potentially slow initialization.
             startForeground(NOTIFICATION_ID, createNotification())
@@ -96,6 +109,7 @@ class OverlayService : LifecycleService() {
         val view = ComposeView(this).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
             setViewTreeLifecycleOwner(this@OverlayService)
+            setViewTreeSavedStateRegistryOwner(this@OverlayService)
             setContent {
                 val agentState = agentCore.state.collectAsState()
                 val tasks = recentTasks.collectAsState()
